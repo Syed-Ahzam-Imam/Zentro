@@ -7,9 +7,10 @@ import CategoryList from "./shop/CategoryList";
 import { useSearchParams } from "next/navigation";
 import BrandList from "./shop/BrandList";
 import PriceList from "./shop/PriceList";
-import { Loader2 } from "lucide-react";
+import { Filter, Loader2, SlidersHorizontal, X } from "lucide-react";
 import NoProductAvailable from "./NoProductAvailable";
 import ProductCard from "./ProductCard";
+import { useOutsideClick } from "@/hooks";
 
 interface Props {
   categories: Category[];
@@ -30,6 +31,8 @@ const Shop = ({ categories, brands }: Props) => {
     brandParams || null
   );
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useOutsideClick<HTMLDivElement>(() => setIsFilterOpen(false));
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -69,29 +72,93 @@ const Shop = ({ categories, brands }: Props) => {
   return (
     <div className="border-t">
       <Container className="mt-5">
-        <div className="sticky top-0 z-10 mb-5">
+        <div className="sticky top-0 z-10 mb-5  py-2 ">
           <div className="flex items-center justify-between">
-            <Title className="text-lg uppercase tracking-wide">
-              Get the products as your needs
-            </Title>
-            {(selectedCategory !== null ||
-              selectedBrand !== null ||
-              selectedPrice !== null) && (
-              <button
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setSelectedBrand(null);
-                  setSelectedPrice(null);
-                }}
-                className="text-shop_dark_green underline text-sm mt-2 font-medium hover:text-darkRed hoverEffect"
-              >
-                Reset Filters
-              </button>
-            )}
+            <div className="flex flex-col">
+              <Title className="text-[12px] sm:text-lg uppercase tracking-wide">
+                Get the products as your needs
+              </Title>
+              {(selectedCategory !== null ||
+                selectedBrand !== null ||
+                selectedPrice !== null) && (
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedBrand(null);
+                    setSelectedPrice(null);
+                  }}
+                  className="text-shop_dark_green underline text-sm mt-1 font-medium hover:text-darkRed hoverEffect text-left"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+            {/* Mobile Filter Button */}
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="md:hidden flex items-center gap-2 px-3 py-1 bg-shop_dark_green text-white rounded-md font-medium hover:bg-shop_btn_dark_green transition-colors"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-white" />
+              Filters
+            </button>
           </div>
         </div>
+
+        {/* Mobile Filter Drawer */}
+        <div
+          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+            isFilterOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+          }`}
+        >
+          <div
+            ref={filterRef}
+            className={`absolute left-0 top-0 h-full w-[280px] bg-white shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col ${
+              isFilterOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <div className="p-5 border-b flex items-center justify-between">
+              <h2 className="text-xl font-bold text-shop_dark_green flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                Filters
+              </h2>
+              <button
+                onClick={() => setIsFilterOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <CategoryList
+                categories={categories}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={(val) => {
+                  setSelectedCategory(val);
+                  setIsFilterOpen(false);
+                }}
+              />
+              <BrandList
+                brands={brands}
+                setSelectedBrand={(val) => {
+                  setSelectedBrand(val);
+                  setIsFilterOpen(false);
+                }}
+                selectedBrand={selectedBrand}
+              />
+              <PriceList
+                setSelectedPrice={(val) => {
+                  setSelectedPrice(val);
+                  setIsFilterOpen(false);
+                }}
+                selectedPrice={selectedPrice}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row gap-5 border-t border-t-shop_dark_green/50">
-          <div className="md:sticky md:top-20 md:self-start md:h-[calc(100vh-160px)] md:overflow-y-auto md:min-w-64 pb-5 md:border-r border-r-shop_btn_dark_green/50 scrollbar-hide">
+          {/* Desktop Sidebar */}
+          <div className="hidden md:block md:sticky md:top-20 md:self-start md:h-[calc(100vh-160px)] md:overflow-y-auto md:min-w-64 pb-5 md:border-r border-r-shop_btn_dark_green/50 scrollbar-hide">
             <CategoryList
               categories={categories}
               selectedCategory={selectedCategory}
@@ -107,6 +174,7 @@ const Shop = ({ categories, brands }: Props) => {
               selectedPrice={selectedPrice}
             />
           </div>
+
           <div className="flex-1 pt-5">
             <div className="h-[calc(100vh-160px)] overflow-y-auto pr-2 scrollbar-hide">
               {loading ? (
@@ -117,7 +185,7 @@ const Shop = ({ categories, brands }: Props) => {
                   </p>
                 </div>
               ) : products?.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {products?.map((product) => (
                     <ProductCard key={product?._id} product={product} />
                   ))}
